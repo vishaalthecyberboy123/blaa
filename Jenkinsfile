@@ -4,42 +4,27 @@ pipeline {
     environment {
         IMAGE_NAME = 'demo-ci-app'
         CONTAINER_NAME = 'demo-ci-container'
-        HOST_PORT = '8080'
-        CONTAINER_PORT = '80'
     }
 
     stages {
 
         stage('Check Source') {
             steps {
-                sh '''
-                    echo "===== PROJECT FILES ====="
-                    ls -la
-
-                    echo "===== CURRENT BRANCH ====="
-                    git branch --show-current || true
-
-                    echo "===== DOCKER ====="
-                    docker --version
-                '''
+                sh 'ls -la'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                    docker build \
-                        -t ${IMAGE_NAME}:latest \
-                        .
-                '''
+                sh 'docker build -t demo-ci-app:latest .'
             }
         }
 
         stage('Remove Old Container') {
             steps {
                 sh '''
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rm ${CONTAINER_NAME} || true
+                    docker stop demo-ci-container || true
+                    docker rm demo-ci-container || true
                 '''
             }
         }
@@ -48,21 +33,19 @@ pipeline {
             steps {
                 sh '''
                     docker run -d \
-                        --name ${CONTAINER_NAME} \
-                        -p ${HOST_PORT}:${CONTAINER_PORT} \
-                        ${IMAGE_NAME}:latest
+                    --name demo-ci-container \
+                    -p 8080:80 \
+                    demo-ci-app:latest
                 '''
             }
         }
 
-        stage('Verify Website') {
+        stage('Verify') {
             steps {
                 sh '''
-                    echo "===== CONTAINER ====="
+                    docker images
                     docker ps
-
-                    echo "===== WEBSITE TEST ====="
-                    curl -I http://localhost:${HOST_PORT}
+                    curl -I http://localhost:8080
                 '''
             }
         }
@@ -70,14 +53,11 @@ pipeline {
 
     post {
         success {
-            echo '================================='
-            echo '✅ DEPLOYMENT SUCCESSFUL!'
-            echo '🌐 http://YOUR_EC2_PUBLIC_IP:8080'
-            echo '================================='
+            echo '✅ DEPLOYMENT SUCCESSFUL'
         }
 
         failure {
-            echo '❌ DEPLOYMENT FAILED!'
+            echo '❌ DEPLOYMENT FAILED'
             sh 'docker ps -a || true'
         }
     }
