@@ -60,3 +60,5 @@ post {
         sh 'docker ps -a || true'
     }
 }
+
+}
