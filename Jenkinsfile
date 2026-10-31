@@ -1,9 +1,11 @@
+```groovy
 pipeline {
     agent any
 
     environment {
         IMAGE_NAME = 'demo-ci-app'
         CONTAINER_NAME = 'demo-ci-container'
+        HOST_PORT = '8081'
     }
 
     stages {
@@ -16,15 +18,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t demo-ci-app:latest .'
+                sh 'docker build -t ${IMAGE_NAME}:latest .'
             }
         }
 
         stage('Remove Old Container') {
             steps {
                 sh '''
-                    docker stop demo-ci-container || true
-                    docker rm demo-ci-container || true
+                    docker rm -f ${CONTAINER_NAME} || true
                 '''
             }
         }
@@ -33,9 +34,9 @@ pipeline {
             steps {
                 sh '''
                     docker run -d \
-                    --name demo-ci-container \
-                    -p 8080:80 \
-                    demo-ci-app:latest
+                    --name ${CONTAINER_NAME} \
+                    -p ${HOST_PORT}:80 \
+                    ${IMAGE_NAME}:latest
                 '''
             }
         }
@@ -45,7 +46,8 @@ pipeline {
                 sh '''
                     docker images
                     docker ps
-                    curl -I http://localhost:8080
+                    sleep 3
+                    curl -f -I http://localhost:${HOST_PORT}
                 '''
             }
         }
@@ -54,6 +56,7 @@ pipeline {
     post {
         success {
             echo '✅ DEPLOYMENT SUCCESSFUL'
+            echo 'Website running on port 8081'
         }
 
         failure {
@@ -62,3 +65,4 @@ pipeline {
         }
     }
 }
+```
